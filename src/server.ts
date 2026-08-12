@@ -12,17 +12,56 @@ const browserDistFolder = join(import.meta.dirname, '../browser');
 const app = express();
 const angularApp = new AngularNodeAppEngine();
 
+// Parse JSON request bodies
+app.use(express.json());
+
 /**
- * Example Express Rest API endpoints can be defined here.
- * Uncomment and define endpoints as necessary.
- *
- * Example:
- * ```ts
- * app.get('/api/{*splat}', (req, res) => {
- *   // Handle API request
- * });
- * ```
+ * AI Socratic Tutor Endpoint using @google/genai securely on the server
  */
+app.post('/api/tutor', async (req, res) => {
+  const apiKey = process.env['GEMINI_API_KEY'];
+  if (!apiKey) {
+    return res.status(500).json({ 
+      error: 'GEMINI_API_KEY environment variable is not configured. Please set your Gemini API key in the secrets panel.' 
+    });
+  }
+
+  const { lessonTitle, userCode, studentMessage, errorState } = req.body;
+
+  try {
+    const { GoogleGenAI } = await import('@google/genai');
+    const ai = new GoogleGenAI({ apiKey });
+
+    const systemPrompt = `You are a Socratic programming and technical tutor on an interactive learning platform.
+Your goal is to guide students to understand concepts and find solutions on their own rather than providing the straight code or answers.
+Active context:
+- Current Lesson: ${lessonTitle || 'General Programming'}
+- Student's Code:
+\`\`\`python
+${userCode || '# No code written yet'}
+\`\`\`
+- Recent Error/Traceback: ${errorState || 'None'}
+
+Socratic Tutoring Rules:
+1. Speak in a friendly, encouraging, and mentoring tone.
+2. If the student asks for the answer ("What is the code?"), ask what they tried, point out the relevant concept, and give an intuitive hint.
+3. If their code has an error, explain what the error means in beginner-friendly terms, but do not rewrite their entire program. Give them a guided path to correct it.
+4. Keep explanations short, readable, and highly interactive (ask them a single, focused question to prompt their next step).`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [
+        { role: 'user', parts: [{ text: `${systemPrompt}\n\nStudent asks: ${studentMessage}` }] }
+      ]
+    });
+
+    const reply = response.text || "I'm here to help! Could you explain what you are trying to accomplish?";
+    return res.json({ reply });
+  } catch (err: any) {
+    console.error("Gemini API Error:", err);
+    return res.status(500).json({ error: "Sorry, I had trouble contacting my brain. Please try again." });
+  }
+});
 
 /**
  * Serve static files from /browser
