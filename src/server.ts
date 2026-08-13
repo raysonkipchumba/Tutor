@@ -30,7 +30,14 @@ app.post('/api/tutor', async (req, res) => {
 
   try {
     const { GoogleGenAI } = await import('@google/genai');
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({ 
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    });
 
     const systemPrompt = `You are a Socratic programming and technical tutor on an interactive learning platform.
 Your goal is to guide students to understand concepts and find solutions on their own rather than providing the straight code or answers.
@@ -49,7 +56,7 @@ Socratic Tutoring Rules:
 4. Keep explanations short, readable, and highly interactive (ask them a single, focused question to prompt their next step).`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-flash-latest',
       contents: [
         { role: 'user', parts: [{ text: `${systemPrompt}\n\nStudent asks: ${studentMessage}` }] }
       ]
