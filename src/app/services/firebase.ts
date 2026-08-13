@@ -9,7 +9,9 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  updateProfile
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -17,11 +19,6 @@ import {
   doc, 
   setDoc, 
   getDoc,
-  collection,
-  query,
-  where,
-  getDocs,
-  FieldValue,
   serverTimestamp,
   increment,
   updateDoc
@@ -31,15 +28,15 @@ export interface UserProfile {
   uid: string;
   displayName: string;
   email: string;
-  createdAt: any;
-  lastActiveAt: any;
+  createdAt: Date | string;
+  lastActiveAt: Date | string;
   role: 'student' | 'admin';
   xp: number;
   streak: number;
   completedLessons: string[]; // lessonIds
   bookmarks: string[]; // lessonIds
-  quizHighScores: { [quizId: string]: number }; // quizId -> score
-  challengeAttempts: { [challengeId: string]: 'NOT_STARTED' | 'ATTEMPTED' | 'PASSED' | 'MASTERED' };
+  quizHighScores: Record<string, number>; // quizId -> score
+  challengeAttempts: Record<string, 'NOT_STARTED' | 'ATTEMPTED' | 'PASSED' | 'MASTERED'>;
 }
 
 @Injectable({
@@ -164,6 +161,13 @@ export class FirebaseService {
   async login(email: string, password: string) {
     if (!this.auth) throw new Error("Auth not initialized");
     const credential = await signInWithEmailAndPassword(this.auth, email, password);
+    return credential.user;
+  }
+
+  async loginWithGoogle() {
+    if (!this.auth) throw new Error("Auth not initialized");
+    const provider = new GoogleAuthProvider();
+    const credential = await signInWithPopup(this.auth, provider);
     return credential.user;
   }
 

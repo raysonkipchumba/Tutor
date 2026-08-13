@@ -15,20 +15,24 @@ export class EvaluatorService {
   evaluatePython(code: string, inputs: string[] = []): EvaluationResult {
     const consoleLogs: string[] = [];
     const inputQueue = [...inputs];
-    const variables: { [key: string]: any } = {};
+    const variables: Record<string, unknown> = {};
 
     const lines = code.split('\n').map(l => l.trim());
 
     try {
       for (let i = 0; i < lines.length; i++) {
-        let line = lines[i];
+        const line = lines[i];
         if (!line || line.startsWith('#')) continue; // Skip comments
 
         // Handle print statement
         if (line.startsWith('print(') && line.endsWith(')')) {
           const innerContent = line.substring(6, line.length - 1);
-          const args = this.parsePrintArgs(innerContent, variables);
-          consoleLogs.push(args.join(' '));
+          const { evaluatedArgs, sep, end } = this.parsePrintArgs(innerContent, variables);
+          let printStr = evaluatedArgs.map(val => String(val)).join(sep);
+          if (end !== '\n') {
+            printStr += end;
+          }
+          consoleLogs.push(printStr);
           continue;
         }
 
@@ -71,16 +75,17 @@ export class EvaluatorService {
         success: true,
         output: consoleLogs.join('\n') + '\n'
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Traceback (most recent call): File "main.py", line 1, Unknown Error';
       return {
         success: false,
         output: consoleLogs.join('\n'),
-        error: err.message || 'Traceback (most recent call): File "main.py", line 1, Unknown Error'
+        error: errMsg
       };
     }
   }
 
-  private parsePrintArgs(content: string, variables: { [key: string]: any }): any[] {
+  private parsePrintArgs(content: string, variables: Record<string, unknown>): { evaluatedArgs: unknown[]; sep: string; end: string } {
     // Basic argument splitter by comma, taking care of quotes
     const args: string[] = [];
     let current = '';
@@ -111,24 +116,26 @@ export class EvaluatorService {
     // Now evaluate each argument
     let sep = ' ';
     let end = '\n';
-    const evaluatedArgs: any[] = [];
+    const evaluatedArgs: unknown[] = [];
 
     for (const arg of args) {
       if (arg.startsWith('sep=')) {
-        sep = this.evalExpression(arg.substring(4), variables);
+        const sepExpr = this.evalExpression(arg.substring(4), variables);
+        sep = String(sepExpr);
         continue;
       }
       if (arg.startsWith('end=')) {
-        end = this.evalExpression(arg.substring(4), variables);
+        const endExpr = this.evalExpression(arg.substring(4), variables);
+        end = String(endExpr);
         continue;
       }
       evaluatedArgs.push(this.evalExpression(arg, variables));
     }
 
-    return evaluatedArgs;
+    return { evaluatedArgs, sep, end };
   }
 
-  private evalExpression(expr: string, variables: { [key: string]: any }): any {
+  private evalExpression(expr: string, variables: Record<string, unknown>): unknown {
     expr = expr.trim();
     if (!expr) return '';
 
@@ -242,7 +249,7 @@ export class EvaluatorService {
   }
 
   // Generate an HTML code sandbox URL/source for client iframe previews
-  generateHtmlPreview(html: string, css: string = '', js: string = ''): string {
+  generateHtmlPreview(html: string, css = '', js = ''): string {
     return `
       <!DOCTYPE html>
       <html>

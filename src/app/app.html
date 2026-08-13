@@ -1,1 +1,861 @@
-<router-outlet />
+<div class="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col" id="app-container">
+
+  <!-- TOP HEADER -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-sm" id="main-header">
+    <div class="flex items-center space-x-3" id="brand-container">
+      <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-100" id="brand-logo">
+        <mat-icon>school</mat-icon>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight text-slate-900" id="brand-title">Rayson Learn</h1>
+        <p class="text-xs text-slate-500 font-medium" id="brand-subtitle">Interactive Textbook & Playground</p>
+      </div>
+    </div>
+
+    <!-- MAIN TAB SELECTORS -->
+    <nav class="hidden md:flex items-center space-x-1" id="desktop-nav">
+      <button 
+        (click)="activeTab.set('dashboard')"
+        class="px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2"
+        [class.bg-slate-100]="activeTab() === 'dashboard'"
+        [class.text-slate-900]="activeTab() === 'dashboard'"
+        [class.text-slate-600]="activeTab() !== 'dashboard'"
+        id="nav-dashboard">
+        <mat-icon class="text-lg">dashboard</mat-icon>
+        <span>Dashboard</span>
+      </button>
+      <button 
+        (click)="activeTab.set('courses')"
+        class="px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2"
+        [class.bg-slate-100]="activeTab() === 'courses'"
+        [class.text-slate-900]="activeTab() === 'courses'"
+        [class.text-slate-600]="activeTab() !== 'courses'"
+        id="nav-catalog">
+        <mat-icon class="text-lg">collections_bookmark</mat-icon>
+        <span>Courses</span>
+      </button>
+      <button 
+        (click)="activeTab.set('classroom')"
+        class="px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2"
+        [class.bg-slate-100]="activeTab() === 'classroom'"
+        [class.text-slate-900]="activeTab() === 'classroom'"
+        [class.text-slate-600]="activeTab() !== 'classroom'"
+        id="nav-classroom">
+        <mat-icon class="text-lg">code</mat-icon>
+        <span>Classroom</span>
+      </button>
+    </nav>
+
+    <!-- RIGHT ACTION PANEL -->
+    <div class="flex items-center space-x-3" id="header-actions">
+      <!-- XP & LEVEL DISPLAY -->
+      <div class="bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-xl flex items-center space-x-2 text-indigo-700" id="xp-indicator">
+        <mat-icon class="text-lg">stars</mat-icon>
+        <span class="text-sm font-semibold tracking-wide" id="xp-text">{{ currentProfile().xp }} XP</span>
+      </div>
+
+      <!-- AUTH / PROFILE ACTION -->
+      @if (firebase.currentUser()) {
+        <div class="flex items-center space-x-2" id="profile-container">
+          <div class="hidden lg:block text-right" id="profile-info">
+            <p class="text-sm font-semibold text-slate-800 leading-tight">{{ currentProfile().displayName }}</p>
+            <p class="text-xs text-indigo-600 font-medium capitalize">{{ currentProfile().role }}</p>
+          </div>
+          <button (click)="firebase.logout(); activeTab.set('dashboard')" class="p-2 text-slate-500 hover:text-red-500 transition-colors rounded-lg bg-slate-100 hover:bg-slate-200" title="Log Out" id="btn-logout">
+            <mat-icon>logout</mat-icon>
+          </button>
+        </div>
+      } @else {
+        <button (click)="activeTab.set('auth')" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors duration-200 rounded-xl shadow-md shadow-indigo-100 flex items-center space-x-2" id="btn-login-header">
+          <mat-icon>login</mat-icon>
+          <span>Sign In</span>
+        </button>
+      }
+    </div>
+  </header>
+
+  <!-- MOBILE BOTTOM NAVIGATION -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 py-2 px-6 flex justify-around items-center z-40 shadow-lg" id="mobile-nav">
+    <button (click)="activeTab.set('dashboard')" class="flex flex-col items-center space-y-0.5 text-slate-600 hover:text-indigo-600" [class.text-indigo-600]="activeTab() === 'dashboard'" id="mob-dashboard">
+      <mat-icon>dashboard</mat-icon>
+      <span class="text-2xs font-semibold">Home</span>
+    </button>
+    <button (click)="activeTab.set('courses')" class="flex flex-col items-center space-y-0.5 text-slate-600 hover:text-indigo-600" [class.text-indigo-600]="activeTab() === 'courses'" id="mob-catalog">
+      <mat-icon>collections_bookmark</mat-icon>
+      <span class="text-2xs font-semibold">Courses</span>
+    </button>
+    <button (click)="activeTab.set('classroom')" class="flex flex-col items-center space-y-0.5 text-slate-600 hover:text-indigo-600" [class.text-indigo-600]="activeTab() === 'classroom'" id="mob-classroom">
+      <mat-icon>code</mat-icon>
+      <span class="text-2xs font-semibold">Learn</span>
+    </button>
+  </nav>
+
+  <!-- MAIN VIEWPORT -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 mb-16 md:mb-0 flex flex-col" id="viewport">
+
+    <!-- 1. STUDENT DASHBOARD VIEW -->
+    @if (activeTab() === 'dashboard') {
+      <div class="space-y-6" id="dashboard-view">
+        
+        <!-- Welcome banner -->
+        <div class="bg-gradient-to-r from-indigo-900 to-indigo-700 text-white rounded-2xl p-6 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6" id="dashboard-banner">
+          <div class="space-y-2">
+            <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight">Willkommen, {{ currentProfile().displayName }}!</h2>
+            <p class="text-indigo-100 max-w-lg text-sm md:text-base">Ready to level up your technology and programming skills today? Step into your personal textbook and coding playground.</p>
+          </div>
+          <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex items-center space-x-4 border border-white/10" id="stats-streak">
+            <div class="text-center">
+              <p class="text-xs uppercase tracking-wider font-semibold text-indigo-200">Daily Streak</p>
+              <div class="flex items-center justify-center space-x-1 mt-1">
+                <span class="text-2xl font-black text-amber-400">🔥 1</span>
+                <span class="text-xs text-indigo-100">day</span>
+              </div>
+            </div>
+            <div class="w-px h-10 bg-white/20"></div>
+            <div class="text-center">
+              <p class="text-xs uppercase tracking-wider font-semibold text-indigo-200">Rank</p>
+              <p class="text-lg font-bold text-white mt-1">Tech Apprentice</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- STATS OVERVIEW -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="stats-grid">
+          <div class="bg-white border border-slate-200 p-5 rounded-2xl flex items-center space-x-4 shadow-sm">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <mat-icon>emoji_events</mat-icon>
+            </div>
+            <div>
+              <p class="text-2xl font-black text-slate-800">{{ currentProfile().xp }}</p>
+              <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Experience</p>
+            </div>
+          </div>
+
+          <div class="bg-white border border-slate-200 p-5 rounded-2xl flex items-center space-x-4 shadow-sm">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+              <mat-icon>check_circle</mat-icon>
+            </div>
+            <div>
+              <p class="text-2xl font-black text-slate-800">{{ currentProfile().completedLessons.length }}</p>
+              <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Lessons Finished</p>
+            </div>
+          </div>
+
+          <div class="bg-white border border-slate-200 p-5 rounded-2xl flex items-center space-x-4 shadow-sm">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <mat-icon>bookmark</mat-icon>
+            </div>
+            <div>
+              <p class="text-2xl font-black text-slate-800">{{ currentProfile().bookmarks.length }}</p>
+              <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Bookmarks Saved</p>
+            </div>
+          </div>
+
+          <div class="bg-white border border-slate-200 p-5 rounded-2xl flex items-center space-x-4 shadow-sm">
+            <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+              <mat-icon>code</mat-icon>
+            </div>
+            <div>
+              <p class="text-2xl font-black text-slate-800">
+                {{ currentProfile().challengeAttempts ? (currentProfile().challengeAttempts | keyvalue).length : 0 }}
+              </p>
+              <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Challenges Met</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" id="dashboard-content-split">
+          
+          <!-- LEFT COLUMN: CONTINUOUS EDUCATION -->
+          <div class="lg:col-span-2 space-y-6" id="left-column-dashboard">
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4" id="continue-learning-section">
+              <h3 class="text-lg font-bold text-slate-900 flex items-center space-x-2">
+                <mat-icon class="text-indigo-600">play_circle_filled</mat-icon>
+                <span>Continue Learning</span>
+              </h3>
+              
+              <div class="border border-slate-100 bg-slate-50 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4" id="continue-banner-inner">
+                <div class="space-y-1">
+                  <span class="px-2.5 py-1 text-2xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full uppercase tracking-wider">Python Foundations</span>
+                  <h4 class="font-extrabold text-slate-800 text-base mt-2">1.2 Input and Output</h4>
+                  <p class="text-xs text-slate-500">Practice custom separators, end parameters, and receiving user values.</p>
+                </div>
+                <button 
+                  (click)="selectLesson(curriculum.getCourses()[0].chapters[0].lessons[1], curriculum.getCourses()[0])"
+                  class="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 text-white font-semibold text-sm rounded-xl hover:bg-indigo-700 transition shadow-md shadow-indigo-100 flex items-center justify-center space-x-2"
+                  id="btn-resume-learn">
+                  <span>Resume</span>
+                  <mat-icon class="text-sm">arrow_forward</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <!-- CHOOSE A TRACK QUICK-SELECTOR -->
+            <div class="space-y-4" id="quick-track-section">
+              <h3 class="text-lg font-bold text-slate-900 flex items-center space-x-2">
+                <mat-icon class="text-indigo-600">explore</mat-icon>
+                <span>Syllabus Tracks</span>
+              </h3>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="quick-tracks-grid">
+                @for (course of curriculum.getCourses(); track course.id) {
+                  <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between" id="track-card-{{course.id}}">
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between">
+                        <div class="w-10 h-10 rounded-xl bg-slate-100 text-indigo-600 flex items-center justify-center">
+                          <mat-icon>{{ course.thumbnail }}</mat-icon>
+                        </div>
+                        <span class="text-2xs font-extrabold tracking-wider uppercase bg-slate-100 px-2 py-0.5 rounded text-slate-600">{{ course.difficulty }}</span>
+                      </div>
+                      <h4 class="font-extrabold text-slate-800 text-base mt-1">{{ course.title }}</h4>
+                      <p class="text-xs text-slate-500 leading-relaxed">{{ course.description }}</p>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between" id="track-footer-{{course.id}}">
+                      <div class="flex-1 max-w-[60%]">
+                        <div class="flex items-center justify-between text-2xs text-slate-500 font-bold mb-1">
+                          <span>Progress</span>
+                          <span>{{ getCourseProgress(course) }}%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                          <div class="bg-indigo-600 h-1.5 rounded-full" [style.width.%]="getCourseProgress(course)"></div>
+                        </div>
+                      </div>
+
+                      <button (click)="selectCourse(course)" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-lg transition" id="btn-select-track-{{course.id}}">
+                        Explore
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+          </div>
+
+          <!-- RIGHT COLUMN: SAVED BOOKMARKS & RECENT ACHIEVEMENTS -->
+          <div class="space-y-6" id="right-column-dashboard">
+            
+            <!-- BOOKMARKS PANEL -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4" id="bookmarks-panel">
+              <h3 class="text-md font-bold text-slate-900 flex items-center space-x-2">
+                <mat-icon class="text-amber-500">bookmark</mat-icon>
+                <span>Saved Bookmarks</span>
+              </h3>
+              
+              @if (currentProfile().bookmarks.length === 0) {
+                <div class="text-center py-6 text-slate-400 space-y-2" id="empty-bookmarks">
+                  <mat-icon class="text-3xl">turned_in_not</mat-icon>
+                  <p class="text-xs font-medium">No bookmarks saved yet. Keep bookmarking sections to read them offline!</p>
+                </div>
+              } @else {
+                <div class="space-y-2 max-h-[220px] overflow-y-auto" id="bookmarks-list">
+                  @for (bookmarkId of currentProfile().bookmarks; track bookmarkId) {
+                    <div class="p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 transition flex items-center justify-between">
+                      <div class="flex items-center space-x-2">
+                        <mat-icon class="text-indigo-500 text-sm">article</mat-icon>
+                        <span class="text-xs font-semibold text-slate-700">Lesson ID: {{ bookmarkId }}</span>
+                      </div>
+                      <button (click)="firebase.toggleBookmark(bookmarkId)" class="text-slate-400 hover:text-red-500" title="Remove Bookmark">
+                        <mat-icon class="text-sm">close</mat-icon>
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- OFFLINE NOTICE -->
+            <div class="bg-emerald-50 border border-emerald-100 text-emerald-800 p-4 rounded-2xl shadow-sm space-y-2" id="offline-tip-card">
+              <h4 class="font-extrabold text-sm flex items-center space-x-2">
+                <mat-icon class="text-emerald-600">offline_pin</mat-icon>
+                <span>Offline Support</span>
+              </h4>
+              <p class="text-2xs text-emerald-700 leading-relaxed font-medium">This learning console caches course chapters and reads the local profile to keep your streak hot. You can keep reading textbook sections and running Python commands even with limited connectivity!</p>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    }
+
+    <!-- 2. COURSE CATALOGUE VIEW -->
+    @if (activeTab() === 'courses') {
+      <div class="space-y-6" id="catalog-view">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4" id="catalog-header-bar">
+          <div>
+            <h2 class="text-2xl font-black tracking-tight text-slate-900">Explore Curriculum Tracks</h2>
+            <p class="text-xs text-slate-500">Pick any course below. Our textbooks make learning active and interactive.</p>
+          </div>
+
+          <!-- Dynamic search box as requested -->
+          <div class="relative max-w-sm w-full" id="search-box-container">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+              <mat-icon class="text-sm">search</mat-icon>
+            </span>
+            <input 
+              type="text" 
+              [value]="searchKeyword()"
+              (input)="setSearchKeyword($event)"
+              placeholder="Search concepts, like 'print' or 'operators'..." 
+              class="w-full bg-white border border-slate-200 text-sm rounded-xl pl-9 pr-4 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
+              id="input-catalog-search">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="courses-catalog-grid">
+          @for (course of filteredCourses(); track course.id) {
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between" id="course-card-{{course.id}}">
+              <div class="p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                  <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <mat-icon>{{ course.thumbnail }}</mat-icon>
+                  </div>
+                  <span class="text-2xs font-black tracking-wider uppercase bg-slate-100 text-slate-600 px-3 py-1 rounded-full">
+                    {{ course.difficulty }}
+                  </span>
+                </div>
+
+                <div class="space-y-1">
+                  <h3 class="text-lg font-bold text-slate-900">{{ course.title }}</h3>
+                  <p class="text-xs text-slate-500 flex items-center space-x-1">
+                    <mat-icon class="text-xs text-slate-400">schedule</mat-icon>
+                    <span>Approx. {{ course.estimatedHours }} hours of work</span>
+                  </p>
+                </div>
+
+                <p class="text-xs text-slate-600 leading-relaxed">{{ course.description }}</p>
+              </div>
+
+              <div class="bg-slate-50 border-t border-slate-100 p-5 flex flex-col gap-3" id="course-card-footer-{{course.id}}">
+                <div class="flex items-center justify-between text-2xs text-slate-500 font-bold">
+                  <span>Course Progress</span>
+                  <span>{{ getCourseProgress(course) }}%</span>
+                </div>
+                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                  <div class="bg-indigo-600 h-2 rounded-full" [style.width.%]="getCourseProgress(course)"></div>
+                </div>
+
+                <button 
+                  (click)="selectCourse(course)"
+                  class="mt-2 w-full py-2.5 bg-indigo-600 text-white font-bold text-sm rounded-xl hover:bg-indigo-700 transition flex items-center justify-center space-x-2 shadow-md shadow-indigo-100"
+                  id="btn-launch-course-{{course.id}}">
+                  <span>Enter Classroom</span>
+                  <mat-icon class="text-sm">arrow_forward</mat-icon>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- 3. INTERACTIVE CLASSROOM VIEW -->
+    @if (activeTab() === 'classroom') {
+      <div class="flex flex-col flex-1" id="classroom-view">
+        
+        @if (!selectedCourse()) {
+          <div class="text-center py-16 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4 flex flex-col items-center justify-center" id="classroom-empty-state">
+            <mat-icon class="text-5xl text-indigo-500">school</mat-icon>
+            <h3 class="text-xl font-black text-slate-800">You haven't selected a course track yet</h3>
+            <p class="text-xs text-slate-500 max-w-sm">Hop over to the Courses tab to choose from Python, HTML, CSS, JavaScript, or German to start learning with active code examples!</p>
+            <button (click)="activeTab.set('courses')" class="px-5 py-2.5 bg-indigo-600 text-white font-bold text-sm rounded-xl shadow-md hover:bg-indigo-700 transition" id="btn-empty-select-course">
+              View Courses
+            </button>
+          </div>
+        } @else {
+          
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-stretch" id="classroom-split-grid">
+            
+            <!-- LEFT COLUMN: LESSON NAVIGATOR & TEXTBOOK TEXT (lg:col-span-5) -->
+            <div class="lg:col-span-5 flex flex-col space-y-4" id="classroom-left-column">
+              
+              <!-- Syllabus quick navigation widget -->
+              <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3" id="quick-syllabus-nav">
+                <div class="flex items-center justify-between" id="syllabus-nav-header">
+                  <div class="flex items-center space-x-2">
+                    <mat-icon class="text-indigo-600">menu_book</mat-icon>
+                    <span class="text-sm font-extrabold text-slate-800">{{ selectedCourse()?.title }}</span>
+                  </div>
+                  <span class="text-2xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded">{{ getCourseProgress(selectedCourse()!) }}% completed</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2" id="chapter-lesson-selectors">
+                  <!-- Chapter Selector -->
+                  <div class="space-y-1">
+                    <span class="text-2xs font-extrabold text-slate-400 uppercase tracking-wider block">Chapter</span>
+                    <select class="w-full bg-slate-50 border border-slate-200 text-xs rounded-lg p-2 font-bold focus:outline-none" (change)="selectLesson($any($event).target.value, selectedCourse()!)">
+                      @for (chap of selectedCourse()?.chapters; track chap.id) {
+                        <option [value]="chap.lessons[0]" [selected]="selectedLesson()?.id?.startsWith(chap.id)">{{ chap.title }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <!-- Lesson Selector -->
+                  <div class="space-y-1">
+                    <span class="text-2xs font-extrabold text-slate-400 uppercase tracking-wider block">Lesson</span>
+                    <select class="w-full bg-slate-50 border border-slate-200 text-xs rounded-lg p-2 font-bold focus:outline-none" (change)="selectedLesson.set($any($event).target.value)">
+                      @for (chap of selectedCourse()?.chapters; track chap.id) {
+                        @for (les of chap.lessons; track les.id) {
+                          <option [value]="les" [selected]="selectedLesson()?.id === les.id">{{ les.title }}</option>
+                        }
+                      }
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Textbook Core Contents -->
+              <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex-1 overflow-y-auto space-y-5" id="textbook-view-container">
+                <div class="border-b border-slate-100 pb-3 flex items-start justify-between" id="textbook-header">
+                  <div class="space-y-1">
+                    <h2 class="text-xl font-extrabold text-slate-900 tracking-tight">{{ selectedLesson()?.title }}</h2>
+                    <span class="text-2xs text-slate-400 font-bold flex items-center space-x-1">
+                      <mat-icon class="text-xs">schedule</mat-icon>
+                      <span>Estimated duration: {{ selectedLesson()?.estimatedMinutes }} minutes</span>
+                    </span>
+                  </div>
+
+                  <!-- Bookmark toggle button -->
+                  <button 
+                    (click)="toggleBookmark()"
+                    class="p-2.5 rounded-xl border transition-colors flex items-center justify-center"
+                    [class.bg-amber-50]="currentProfile().bookmarks.includes(selectedLesson()?.id || '')"
+                    [class.border-amber-200]="currentProfile().bookmarks.includes(selectedLesson()?.id || '')"
+                    [class.text-amber-500]="currentProfile().bookmarks.includes(selectedLesson()?.id || '')"
+                    [class.bg-slate-100]="!currentProfile().bookmarks.includes(selectedLesson()?.id || '')"
+                    [class.text-slate-400]="!currentProfile().bookmarks.includes(selectedLesson()?.id || '')"
+                    id="btn-lesson-bookmark">
+                    <mat-icon>{{ currentProfile().bookmarks.includes(selectedLesson()?.id || '') ? 'bookmark' : 'bookmark_border' }}</mat-icon>
+                  </button>
+                </div>
+
+                <!-- Learning Objectives block -->
+                <div class="bg-slate-50 border border-slate-100 rounded-xl p-4 space-y-2" id="learning-objectives-block">
+                  <h4 class="text-xs uppercase font-extrabold tracking-wider text-slate-500">Learning Objectives</h4>
+                  <ul class="space-y-1" id="objectives-list">
+                    @for (obj of selectedLesson()?.objectives; track obj) {
+                      <li class="text-xs font-semibold text-slate-700 flex items-start space-x-2">
+                        <span class="text-indigo-600 mt-0.5">•</span>
+                        <span>{{ obj }}</span>
+                      </li>
+                    }
+                  </ul>
+                </div>
+
+                <!-- Textbook Dynamic Content Blocks rendering -->
+                <div class="space-y-4 leading-relaxed text-slate-700 text-sm font-medium" id="textbook-body-blocks">
+                  @for (block of selectedLesson()?.contentBlocks; track block) {
+                    
+                    @if (block.type === 'heading') {
+                      <h3 class="text-base font-extrabold text-slate-900 pt-2 border-l-4 border-indigo-600 pl-3">{{ block.text }}</h3>
+                    }
+
+                    @if (block.type === 'paragraph') {
+                      <p class="text-slate-600 text-xs md:text-sm font-medium leading-relaxed">{{ block.text }}</p>
+                    }
+
+                    @if (block.type === 'note') {
+                      <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex items-start space-x-3 text-indigo-900">
+                        <mat-icon class="text-indigo-600 mt-0.5">info</mat-icon>
+                        <p class="text-xs font-medium">{{ block.text }}</p>
+                      </div>
+                    }
+
+                    @if (block.type === 'warning') {
+                      <div class="bg-rose-50 border border-rose-100 p-4 rounded-xl flex items-start space-x-3 text-rose-900">
+                        <mat-icon class="text-rose-600 mt-0.5">warning</mat-icon>
+                        <p class="text-xs font-medium">{{ block.text }}</p>
+                      </div>
+                    }
+
+                    @if (block.type === 'code' || block.type === 'example') {
+                      <div class="space-y-1.5" id="code-snippet-box">
+                        @if (block.text) {
+                          <p class="text-2xs font-extrabold text-slate-400 uppercase tracking-wide">{{ block.text }}</p>
+                        }
+                        <pre class="bg-slate-900 text-slate-100 p-4 rounded-xl text-xs font-mono overflow-x-auto shadow-inner"><code>{{ block.code }}</code></pre>
+                      </div>
+                    }
+
+                  }
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN: INTERACTIVE CODE EDITOR & FEEDBACKS (lg:col-span-7) -->
+            <div class="lg:col-span-7 flex flex-col space-y-4" id="classroom-right-column">
+              
+              <!-- Code Editor Wrapper -->
+              <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm flex flex-col h-[350px]" id="interactive-editor">
+                
+                <!-- Editor header with controller actions -->
+                <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between" id="editor-header">
+                  <div class="flex items-center space-x-2">
+                    <mat-icon class="text-slate-500">code</mat-icon>
+                    <span class="text-xs font-bold text-slate-700">Code Workspace (main.py)</span>
+                  </div>
+                  
+                  <div class="flex items-center space-x-2" id="editor-controls">
+                    <button (click)="runCode()" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center space-x-1" id="btn-run-code">
+                      <mat-icon class="text-xs">play_arrow</mat-icon>
+                      <span>Run</span>
+                    </button>
+                    @if (selectedLesson()?.challenge) {
+                      <button (click)="submitChallenge()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center space-x-1" id="btn-submit-challenge">
+                        <mat-icon class="text-xs">offline_pin</mat-icon>
+                        <span>Submit</span>
+                      </button>
+                    }
+                  </div>
+                </div>
+
+                <!-- Live editor text field (conforms to no NgModel rule) -->
+                <textarea 
+                  [value]="userCode()"
+                  (input)="userCode.set($any($event).target.value)"
+                  class="flex-1 w-full bg-slate-950 text-slate-100 p-4 font-mono text-xs focus:outline-none resize-none leading-relaxed border-0 shadow-inner"
+                  id="code-editor-textarea"
+                  spellcheck="false">
+                </textarea>
+              </div>
+
+              <!-- Input Buffer & Console Log Outputs -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 h-[180px]" id="io-console-pane">
+                
+                <!-- Left: Console Input Queue -->
+                <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm flex flex-col" id="console-input-panel">
+                  <div class="bg-slate-50 px-3 py-1.5 border-b border-slate-200 flex items-center justify-between">
+                    <span class="text-2xs font-extrabold text-slate-500 uppercase tracking-wider">Console Input Queue</span>
+                    <span class="text-3xs bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-bold">1 input per line</span>
+                  </div>
+                  <textarea 
+                    [value]="consoleInput()"
+                    (input)="consoleInput.set($any($event).target.value)"
+                    placeholder="Enter arguments or inputs here..." 
+                    class="flex-1 w-full bg-slate-50 text-slate-800 p-3 font-mono text-xs focus:outline-none border-0 resize-none"
+                    id="console-input-textarea">
+                  </textarea>
+                </div>
+
+                <!-- Right: Console Outputs -->
+                <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm flex flex-col" id="console-output-panel">
+                  <div class="bg-slate-50 px-3 py-1.5 border-b border-slate-200">
+                    <span class="text-2xs font-extrabold text-slate-500 uppercase tracking-wider">Output Terminal</span>
+                  </div>
+                  
+                  <div class="flex-1 p-3 bg-slate-900 text-slate-100 font-mono text-xs overflow-y-auto space-y-1" id="console-logs-scroller">
+                    @if (consoleOutput()) {
+                      <pre class="text-emerald-400 whitespace-pre-wrap leading-relaxed">{{ consoleOutput() }}</pre>
+                    }
+                    @if (consoleError()) {
+                      <pre class="text-rose-400 whitespace-pre-wrap leading-relaxed">{{ consoleError() }}</pre>
+                    }
+                    @if (!consoleOutput() && !consoleError()) {
+                      <p class="text-slate-500 italic">Terminal waiting... run your program above.</p>
+                    }
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Socratic Quiz Panel / Challenge Progress Box -->
+              <div class="space-y-4" id="quiz-or-challenge-panel">
+                
+                <!-- CODING CHALLENGE FEEDBACK -->
+                @if (selectedLesson()?.challenge) {
+                  <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3" id="challenge-eval-box">
+                    <div class="flex items-center justify-between">
+                      <h4 class="font-extrabold text-sm text-slate-800">Challenge: {{ selectedLesson()?.challenge?.title }}</h4>
+                      <span class="text-2xs font-bold uppercase px-2.5 py-0.5 rounded"
+                        [class.bg-amber-100]="challengeStatus() === 'ATTEMPTED'"
+                        [class.text-amber-700]="challengeStatus() === 'ATTEMPTED'"
+                        [class.bg-emerald-100]="challengeStatus() === 'MASTERED'"
+                        [class.text-emerald-700]="challengeStatus() === 'MASTERED'"
+                        [class.bg-slate-100]="challengeStatus() === 'NOT_STARTED'"
+                        [class.text-slate-600]="challengeStatus() === 'NOT_STARTED'">
+                        {{ challengeStatus() }}
+                      </span>
+                    </div>
+
+                    <p class="text-xs text-slate-600 leading-relaxed">{{ selectedLesson()?.challenge?.description }}</p>
+
+                    @if (challengeFeedback()) {
+                      <div class="p-3.5 rounded-xl border text-xs font-semibold whitespace-pre-wrap"
+                        [class.bg-emerald-50]="challengeStatus() === 'MASTERED'"
+                        [class.border-emerald-200]="challengeStatus() === 'MASTERED'"
+                        [class.text-emerald-800]="challengeStatus() === 'MASTERED'"
+                        [class.bg-amber-50]="challengeStatus() === 'ATTEMPTED'"
+                        [class.border-amber-200]="challengeStatus() === 'ATTEMPTED'"
+                        [class.text-amber-800]="challengeStatus() === 'ATTEMPTED'"
+                        id="challenge-feedback-box">
+                        {{ challengeFeedback() }}
+                      </div>
+                    }
+
+                    <div class="flex items-center space-x-2" id="challenge-tip-row">
+                      <mat-icon class="text-slate-400 text-sm">info</mat-icon>
+                      <span class="text-2xs text-slate-400">Hint: {{ selectedLesson()?.challenge?.hint }}</span>
+                    </div>
+                  </div>
+                }
+
+                <!-- SOCRATIC QUIZ INTERFACE -->
+                @if (selectedLesson()?.quiz && selectedLesson()?.quiz!.length > 0) {
+                  <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4" id="socratic-quiz-box">
+                    <h4 class="font-extrabold text-sm text-slate-800">Section Checkpoint Quiz</h4>
+                    
+                    @for (q of selectedLesson()?.quiz; track q.id) {
+                      <div class="space-y-2.5 border-t border-slate-100 pt-3" id="quiz-q-{{q.id}}">
+                        <p class="text-xs font-bold text-slate-700">{{ q.question }}</p>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="options-grid-{{q.id}}">
+                          @for (opt of q.options; track opt; let optIdx = $index) {
+                            <button 
+                              (click)="onSelectOption(q.id, optIdx)"
+                              [disabled]="quizSubmitted()"
+                              class="p-2.5 rounded-xl text-left text-xs font-semibold border transition"
+                              [class.bg-indigo-50]="selectedAnswers()[q.id] === optIdx && !quizSubmitted()"
+                              [class.border-indigo-300]="selectedAnswers()[q.id] === optIdx && !quizSubmitted()"
+                              [class.text-indigo-800]="selectedAnswers()[q.id] === optIdx && !quizSubmitted()"
+                              [class.bg-emerald-50]="quizSubmitted() && q.correctAnswer === optIdx"
+                              [class.border-emerald-200]="quizSubmitted() && q.correctAnswer === optIdx"
+                              [class.text-emerald-800]="quizSubmitted() && q.correctAnswer === optIdx"
+                              [class.bg-rose-50]="quizSubmitted() && selectedAnswers()[q.id] === optIdx && q.correctAnswer !== optIdx"
+                              [class.border-rose-200]="quizSubmitted() && selectedAnswers()[q.id] === optIdx && q.correctAnswer !== optIdx"
+                              [class.text-rose-800]="quizSubmitted() && selectedAnswers()[q.id] === optIdx && q.correctAnswer !== optIdx"
+                              [class.bg-white]="selectedAnswers()[q.id] !== optIdx && q.correctAnswer !== optIdx"
+                              id="btn-option-{{q.id}}-{{optIdx}}">
+                              {{ opt }}
+                            </button>
+                          }
+                        </div>
+
+                        <!-- Explanatory feedback for incorrect answers -->
+                        @if (quizSubmitted() && selectedAnswers()[q.id] !== undefined) {
+                          <div class="p-3 bg-slate-50 border border-slate-100 rounded-xl text-2xs font-semibold text-slate-600" id="quiz-explanation-{{q.id}}">
+                            <span class="font-extrabold block mb-0.5" [class.text-emerald-600]="selectedAnswers()[q.id] === q.correctAnswer" [class.text-rose-600]="selectedAnswers()[q.id] !== q.correctAnswer">
+                              {{ selectedAnswers()[q.id] === q.correctAnswer ? 'Correct!' : 'Dismantling Misconception:' }}
+                            </span>
+                            {{ q.explanation }}
+                          </div>
+                        }
+                      </div>
+                    }
+
+                    <div class="pt-3 border-t border-slate-100 flex items-center justify-between" id="quiz-actions-footer">
+                      <button 
+                        (click)="submitQuiz()"
+                        [disabled]="quizSubmitted()"
+                        class="px-5 py-2.5 bg-indigo-600 text-white font-bold text-xs rounded-xl shadow transition"
+                        id="btn-submit-quiz">
+                        Submit Answers
+                      </button>
+
+                      @if (quizSubmitted()) {
+                        <button (click)="markLessonComplete()" class="px-5 py-2.5 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow transition" id="btn-quiz-done">
+                          Mark Section Finished
+                        </button>
+                      }
+                    </div>
+
+                  </div>
+                }
+
+              </div>
+
+              <!-- Classroom View bottom nav page turner -->
+              <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-center justify-between" id="classroom-page-turners">
+                <button (click)="prevLesson()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition flex items-center space-x-1" id="btn-prev-lesson">
+                  <mat-icon class="text-xs">arrow_back</mat-icon>
+                  <span>Prev Section</span>
+                </button>
+
+                <button (click)="nextLesson()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition flex items-center space-x-1" id="btn-next-lesson">
+                  <span>Next Section</span>
+                  <mat-icon class="text-xs">arrow_forward</mat-icon>
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+
+        }
+
+      </div>
+    }
+
+    <!-- 4. AUTHENTICATION WRAPPER -->
+    @if (activeTab() === 'auth') {
+      <div class="max-w-md w-full mx-auto my-12 bg-white border border-slate-200 rounded-2xl shadow-lg p-6 space-y-6" id="auth-panel">
+        <div class="text-center space-y-1" id="auth-header">
+          <mat-icon class="text-4xl text-indigo-600">account_circle</mat-icon>
+          <h2 class="text-2xl font-black text-slate-900">{{ isLoginMode() ? 'Sign In to Rayson Learn' : 'Create Free Account' }}</h2>
+          <p class="text-xs text-slate-500">Sync completed lessons, high-scores, challenges, and bookmarks across all of your devices.</p>
+        </div>
+
+        @if (authError()) {
+          <div class="p-3 bg-rose-50 border border-rose-100 text-rose-800 text-xs font-semibold rounded-xl" id="auth-error-box">
+            {{ authError() }}
+          </div>
+        }
+
+        <div class="space-y-4" id="auth-form-fields">
+          @if (!isLoginMode()) {
+            <div class="space-y-1">
+              <span class="text-2xs font-extrabold text-slate-500 uppercase tracking-wider block">Display Name</span>
+              <input 
+                type="text" 
+                [value]="authName()"
+                (input)="setAuthName($event)"
+                placeholder="Ex: Sophia" 
+                class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                id="input-auth-name">
+            </div>
+          }
+
+          <div class="space-y-1">
+            <span class="text-2xs font-extrabold text-slate-500 uppercase tracking-wider block">Email Address</span>
+            <input 
+              type="email" 
+              [value]="authEmail()"
+              (input)="setAuthEmail($event)"
+              placeholder="Ex: student@raysonlearn.local" 
+              class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              id="input-auth-email">
+          </div>
+
+          <div class="space-y-1">
+            <span class="text-2xs font-extrabold text-slate-500 uppercase tracking-wider block">Password</span>
+            <input 
+              type="password" 
+              [value]="authPassword()"
+              (input)="setAuthPassword($event)"
+              placeholder="••••••••" 
+              class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              id="input-auth-password">
+          </div>
+
+          <button 
+            (click)="handleAuth()"
+            class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl shadow-md transition"
+            id="btn-auth-submit">
+            {{ isLoginMode() ? 'Sign In' : 'Sign Up' }}
+          </button>
+
+          <div class="flex items-center my-4" id="auth-divider">
+            <div class="flex-grow border-t border-slate-200"></div>
+            <span class="px-3 text-2xs text-slate-400 font-bold uppercase tracking-wider">or continue with</span>
+            <div class="flex-grow border-t border-slate-200"></div>
+          </div>
+
+          <button 
+            (click)="handleGoogleAuth()"
+            class="w-full py-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold text-sm rounded-xl shadow-sm transition flex items-center justify-center space-x-2"
+            id="btn-google-auth">
+            <svg class="w-5 h-5" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.85z" stroke-width="0" />
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.85c.87-2.6 3.3-4.53 6.16-4.53z" />
+            </svg>
+            <span>Google Sign-In</span>
+          </button>
+        </div>
+
+        <div class="text-center pt-2" id="auth-footer">
+          <button (click)="isLoginMode.set(!isLoginMode())" class="text-xs text-indigo-600 font-semibold hover:underline" id="btn-toggle-auth-mode">
+            {{ isLoginMode() ? "Don't have an account? Create one" : 'Already have an account? Sign In' }}
+          </button>
+        </div>
+      </div>
+    }
+
+  </main>
+
+  <!-- GEMINI AI SOCRATIC TUTOR FLOATING CHAT DRAWER -->
+  <div class="fixed bottom-20 md:bottom-6 right-6 z-50 flex flex-col items-end" id="floating-tutor-container">
+    
+    <!-- Collapsed Floating Button -->
+    <button 
+      (click)="tutorOpen.set(!tutorOpen())"
+      class="w-14 h-14 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg hover:bg-indigo-700 transition duration-300 relative border border-white/10"
+      title="Socratic Tutor Assistant"
+      id="btn-toggle-tutor-drawer">
+      <mat-icon>{{ tutorOpen() ? 'close' : 'psychology' }}</mat-icon>
+      @if (!tutorOpen()) {
+        <span class="absolute -top-1 -right-1 flex h-3 w-3">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+        </span>
+      }
+    </button>
+
+    <!-- Expanded Tutor Chat Drawer -->
+    @if (tutorOpen()) {
+      <div class="w-[330px] sm:w-[380px] h-[480px] bg-white border border-slate-200 rounded-2xl shadow-2xl mt-4 flex flex-col overflow-hidden animate-slide-in" id="tutor-drawer">
+        <!-- Header -->
+        <div class="bg-indigo-900 text-white px-4 py-3 flex items-center justify-between" id="tutor-drawer-header">
+          <div class="flex items-center space-x-2">
+            <mat-icon class="text-emerald-400">psychology</mat-icon>
+            <div>
+              <h4 class="text-xs font-bold leading-tight">AI Socratic Tutor</h4>
+              <p class="text-3xs text-indigo-200 font-medium">Guiding you, not giving answers.</p>
+            </div>
+          </div>
+          <button (click)="tutorOpen.set(false)" class="text-indigo-200 hover:text-white" id="btn-tutor-close-x">
+            <mat-icon class="text-xs">close</mat-icon>
+          </button>
+        </div>
+
+        <!-- Chat messages view -->
+        <div class="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50" id="tutor-messages-container">
+          @for (m of tutorMessages(); track m) {
+            <div class="flex flex-col" [class.items-end]="m.sender === 'student'" [class.items-start]="m.sender === 'tutor'" id="chat-msg-row">
+              <div class="max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed"
+                [class.bg-indigo-600]="m.sender === 'student'"
+                [class.text-white]="m.sender === 'student'"
+                [class.rounded-tr-none]="m.sender === 'student'"
+                [class.bg-white]="m.sender === 'tutor'"
+                [class.text-slate-800]="m.sender === 'tutor'"
+                [class.rounded-tl-none]="m.sender === 'tutor'"
+                [class.shadow-sm]="m.sender === 'tutor'">
+                {{ m.text }}
+              </div>
+            </div>
+          }
+
+          @if (tutorLoading()) {
+            <div class="flex items-center space-x-2 text-slate-400 text-2xs italic font-medium" id="tutor-loading-indicator">
+              <mat-icon class="animate-spin text-sm">hourglass_empty</mat-icon>
+              <span>Consulting tutor brain...</span>
+            </div>
+          }
+        </div>
+
+        <!-- Tutor chat input controller bar -->
+        <div class="p-3 border-t border-slate-200 bg-white flex items-center space-x-2" id="tutor-input-bar">
+          <input 
+            type="text" 
+            [value]="tutorInput()"
+            (input)="tutorInput.set($any($event).target.value)"
+            (keyup.enter)="sendTutorMessage()"
+            placeholder="Ask a question or paste errors here..." 
+            class="flex-1 bg-slate-50 border border-slate-200 text-xs rounded-xl p-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            id="input-tutor-message">
+          
+          <button (click)="sendTutorMessage()" [disabled]="tutorLoading()" class="p-2.5 bg-indigo-600 text-white rounded-xl shadow-md hover:bg-indigo-700 disabled:opacity-50 transition" id="btn-send-tutor-message">
+            <mat-icon class="text-xs">send</mat-icon>
+          </button>
+        </div>
+      </div>
+    }
+
+  </div>
+
+</div>

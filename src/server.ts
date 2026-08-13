@@ -57,7 +57,7 @@ Socratic Tutoring Rules:
 
     const reply = response.text || "I'm here to help! Could you explain what you are trying to accomplish?";
     return res.json({ reply });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Gemini API Error:", err);
     return res.status(500).json({ error: "Sorry, I had trouble contacting my brain. Please try again." });
   }
