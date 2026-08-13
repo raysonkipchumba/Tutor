@@ -83,7 +83,7 @@ export class FirebaseService {
       this.db = getFirestore(this.app);
 
       // Listen to auth changes
-      onAuthStateChanged(this.auth, async (user) => {
+      onAuthStateChanged(this.auth, async (user: User | null) => {
         this.currentUser.set(user);
         if (user) {
           await this.loadUserProfile(user.uid);

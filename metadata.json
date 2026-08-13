@@ -1,5 +1,5 @@
 {
-  "name": "Interactive Programming Textbook",
+  "name": "learn-with-rayson",
   "description": "An interactive learning textbook and playground with safe client-side code execution and an integrated AI Socratic tutor.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
